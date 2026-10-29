@@ -1,0 +1,42 @@
+name: Build and publish playlist
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "17 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: playlist-publish
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out DBX
+        uses: actions/checkout@v4
+
+      - name: Merge source playlists
+        run: python3 scripts/merge_playlists.py
+
+      - name: Publish or replace the stable release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="playlist-latest"
+          if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$tag" public/playlist.m3u --clobber --repo "$GH_REPO"
+          else
+            gh release create "$tag" public/playlist.m3u \
+              --title "DBX consolidated playlist" \
+              --notes "Generated from the playlist files in Ramys/Iptv-Brasil-2026." \
+              --repo "$GH_REPO"
+          fi
