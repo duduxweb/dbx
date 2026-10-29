@@ -33,6 +33,7 @@ async function loadAllLiveStreams(categories) {
         epg_channel_id: entry.tvgId,
         category_id: String(category.id),
         category_ids: [Number(category.id)],
+        direct_source: entry.url,
         is_adult: 0,
       }));
     }
