@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the full DBX M3U plus category-specific playlists and an API index."""
+"""Build the full DBX M3U plus category-specific playlists and a compact API index."""
 from collections import OrderedDict
 from hashlib import sha1
 import json
@@ -21,8 +21,6 @@ SOURCES = (
     "Filmes-Series.m3u8",
 )
 GROUP_RE = re.compile(r'group-title="([^"]*)"', re.IGNORECASE)
-LOGO_RE = re.compile(r'tvg-logo="([^"]*)"', re.IGNORECASE)
-TVG_ID_RE = re.compile(r'tvg-id="([^"]*)"', re.IGNORECASE)
 
 
 def fetch_source(name: str) -> list[str]:
@@ -75,20 +73,6 @@ def entry_group(entry: list[str]) -> str:
     return "Sem categoria"
 
 
-def entry_fields(entry: list[str]) -> dict:
-    extinf = next((line for line in entry if line.lstrip().startswith("#EXTINF:")), "")
-    title = extinf.rsplit(",", 1)[-1].strip() if "," in extinf else "Sem nome"
-    url = next((line.strip() for line in entry if line.strip() and not line.lstrip().startswith("#")), "")
-    logo = LOGO_RE.search(extinf)
-    tvg_id = TVG_ID_RE.search(extinf)
-    return {
-        "name": title,
-        "url": url,
-        "logo": logo.group(1) if logo else "",
-        "tvg_id": tvg_id.group(1) if tvg_id else "",
-    }
-
-
 def main() -> None:
     destination = Path("public")
     categories_dir = destination / "categories"
@@ -122,7 +106,6 @@ def main() -> None:
         for entry in entries:
             category_lines.extend(entry)
         category_path.write_text("\n".join(category_lines) + "\n", encoding="utf-8")
-        api_entries = [entry_fields(entry) for entry in entries]
         index_categories.append({
             "id": category_id,
             "name": group,
@@ -130,7 +113,6 @@ def main() -> None:
             "asset": asset,
             "count": len(entries),
             "bytes": category_path.stat().st_size,
-            "entries": api_entries,
         })
         print(f"{group}: {len(entries):,} entries -> {category_path.stat().st_size:,} bytes")
 
