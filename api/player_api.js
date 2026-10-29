@@ -14,7 +14,17 @@ async function loadAllLiveStreams(categories) {
       if (categoryIndex >= liveCategories.length) return;
 
       const category = liveCategories[categoryIndex];
-      const entries = parseM3u(await getCategory(category));
+      let entries;
+      try {
+        entries = parseM3u(await getCategory(category));
+      } catch (error) {
+        // Some categories remain in the index after their playlist asset expires.
+        if (/404/.test(String(error.message || error))) {
+          results[categoryIndex] = [];
+          continue;
+        }
+        throw error;
+      }
       results[categoryIndex] = entries.map((entry, index) => ({
         name: entry.name,
         stream_type: "live",
