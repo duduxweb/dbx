@@ -1,4 +1,4 @@
-name: Build and publish playlist
+name: Build and publish playlists
 
 on:
   push:
@@ -23,20 +23,21 @@ jobs:
       - name: Check out DBX
         uses: actions/checkout@v4
 
-      - name: Merge source playlists
+      - name: Build full and category playlists
         run: python3 scripts/merge_playlists.py
 
-      - name: Publish or replace the stable release asset
+      - name: Publish or replace stable release assets
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           tag="playlist-latest"
+          assets=(public/playlist.m3u public/categories-index.json public/categories/*.m3u)
           if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release upload "$tag" public/playlist.m3u --clobber --repo "$GH_REPO"
+            gh release upload "$tag" "${assets[@]}" --clobber --repo "$GH_REPO"
           else
-            gh release create "$tag" public/playlist.m3u \
-              --title "DBX consolidated playlist" \
-              --notes "Generated from the playlist files in Ramys/Iptv-Brasil-2026." \
+            gh release create "$tag" "${assets[@]}" \
+              --title "DBX playlists" \
+              --notes "Generated full playlist, category playlists, and category index from Ramys/Iptv-Brasil-2026." \
               --repo "$GH_REPO"
           fi
