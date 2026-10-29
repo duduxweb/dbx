@@ -111,6 +111,7 @@ def main() -> None:
             "name": group,
             "slug": slug,
             "asset": asset,
+            "url": f"https://github.com/duduxweb/dbx/releases/download/playlist-latest/{asset}",
             "count": len(entries),
             "bytes": category_path.stat().st_size,
         })
