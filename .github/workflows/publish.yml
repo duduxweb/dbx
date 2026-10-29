@@ -54,3 +54,13 @@ jobs:
               gh release upload "$tag" "$asset" --clobber --repo "$GH_REPO"
             fi
           done
+
+          # Keep only category assets generated from the currently selected sources.
+          jq -r '.assets[]? | select(.name | startswith("category-")) | [.id, .name] | @tsv' <<< "$release_json" |
+          while IFS=$'\t' read -r asset_id name; do
+            [[ -n "$asset_id" ]] || continue
+            if [[ ! -f "public/categories/$name" ]]; then
+              echo "Removing inactive category asset: $name"
+              gh api --method DELETE "repos/$GH_REPO/releases/assets/$asset_id"
+            fi
+          done
