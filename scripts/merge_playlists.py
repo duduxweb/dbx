@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the full DBX M3U plus category-specific playlists and a compact API index."""
+"""Build DBX playlists from the selected live and VOD source files."""
 from collections import OrderedDict
 from hashlib import sha1
 import json
