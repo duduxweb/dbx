@@ -16,7 +16,6 @@ async function loadAllLiveStreams(categories) {
       const category = liveCategories[categoryIndex];
       const entries = parseM3u(await getCategory(category));
       results[categoryIndex] = entries.map((entry, index) => ({
-        num: categoryIndex + 1,
         name: entry.name,
         stream_type: "live",
         stream_id: Number(category.id) * 1000000 + index + 1,
@@ -29,7 +28,7 @@ async function loadAllLiveStreams(categories) {
     }
   }));
 
-  return results.flat();
+  return results.flat().map((stream, index) => ({ ...stream, num: index + 1 }));
 }
 
 module.exports = async function handler(req, res) {
