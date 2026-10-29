@@ -12,13 +12,8 @@ from urllib.request import Request, urlopen
 
 BASE = "https://raw.githubusercontent.com/Ramys/Iptv-Brasil-2026/master/"
 SOURCES = (
-    "Canais.m3u8",
-    "CanaisBR01.m3u8",
-    "CanaisBR02.m3u8",
-    "CanaisBR03.m3u8",
-    "CanaisBR04.m3u8",
-    "CanaisIPTV.m3u8",
-    "Filmes-Series.m3u8",
+    ("Canais.m3u8", "live"),
+    ("Filmes-Series.m3u8", "vod"),
 )
 GROUP_RE = re.compile(r'group-title="([^"]*)"', re.IGNORECASE)
 
@@ -79,14 +74,14 @@ def main() -> None:
     categories_dir.mkdir(parents=True, exist_ok=True)
 
     master_lines = ["#EXTM3U"]
-    groups: OrderedDict[str, list[list[str]]] = OrderedDict()
-    for source in SOURCES:
+    groups: OrderedDict[tuple[str, str], list[list[str]]] = OrderedDict()
+    for source, kind in SOURCES:
         lines = fetch_source(source)
         source_lines = [line for line in lines if line.strip() != "#EXTM3U"]
         master_lines.extend(source_lines)
         for entry in split_entries(source_lines):
             group = entry_group(entry)
-            groups.setdefault(group, []).append(entry)
+            groups.setdefault((kind, group), []).append(entry)
         print(f"{source}: {sum(len(line.encode('utf-8')) + 1 for line in source_lines):,} bytes")
 
     master_path = destination / "playlist.m3u"
@@ -95,11 +90,14 @@ def main() -> None:
 
     used_slugs = {}
     index_categories = []
-    for category_id, (group, entries) in enumerate(groups.items(), start=1):
+    for category_id, ((kind, group), entries) in enumerate(groups.items(), start=1):
         slug = slugify(group)
-        if slug in used_slugs and used_slugs[slug] != group:
-            slug += "-" + sha1(group.encode("utf-8")).hexdigest()[:8]
-        used_slugs[slug] = group
+        key = (kind, group)
+        if slug in used_slugs and used_slugs[slug] != key:
+            slug += "-" + kind
+        if slug in used_slugs and used_slugs[slug] != key:
+            slug += "-" + sha1(f"{kind}:{group}".encode("utf-8")).hexdigest()[:8]
+        used_slugs[slug] = key
         asset = f"category-{slug}.m3u"
         category_path = categories_dir / asset
         category_lines = ["#EXTM3U"]
@@ -109,6 +107,7 @@ def main() -> None:
         index_categories.append({
             "id": category_id,
             "name": group,
+            "kind": kind,
             "slug": slug,
             "asset": asset,
             "url": f"https://github.com/duduxweb/dbx/releases/download/playlist-latest/{asset}",
@@ -119,7 +118,7 @@ def main() -> None:
 
     index_path = destination / "categories-index.json"
     index_path.write_text(
-        json.dumps({"generated_from": list(SOURCES), "categories": index_categories},
+        json.dumps({"generated_from": [name for name, _kind in SOURCES], "categories": index_categories},
                    ensure_ascii=False, separators=(",", ":")) + "\n",
         encoding="utf-8",
     )

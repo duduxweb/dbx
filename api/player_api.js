@@ -122,32 +122,21 @@ module.exports = async function handler(req, res) {
       res.setHeader("content-type", "application/json; charset=utf-8");
       res.setHeader("cache-control", "public, s-maxage=60, stale-while-revalidate=300");
 
-      if (action === "get_live_streams" && !categoryId) {
-        // Xtream clients request every live stream at once. Stream the JSON array
-        // to stay below Vercel's 4.5 MB non-streaming response limit.
-        res.statusCode = 200;
-        if (typeof res.flushHeaders === "function") res.flushHeaders();
-        let chunk = "[";
-        for (let index = 0; index < streams.length; index++) {
-          if (index > 0) chunk += ",";
-          chunk += JSON.stringify(streams[index]);
-          if (chunk.length >= 64_000) {
-            if (!res.write(chunk)) await new Promise((resolve) => res.once("drain", resolve));
-            chunk = "";
-          }
+      // Stream Xtream arrays in chunks; large VOD categories can exceed 4.5 MB.
+      res.statusCode = 200;
+      if (typeof res.flushHeaders === "function") res.flushHeaders();
+      let chunk = "[";
+      for (let index = 0; index < streams.length; index++) {
+        if (index > 0) chunk += ",";
+        chunk += JSON.stringify(streams[index]);
+        if (chunk.length >= 64_000) {
+          if (!res.write(chunk)) await new Promise((resolve) => res.once("drain", resolve));
+          chunk = "";
         }
-        chunk += "]";
-        if (!res.write(chunk)) await new Promise((resolve) => res.once("drain", resolve));
-        return res.end();
       }
-
-      const body = JSON.stringify(streams);
-      if (Buffer.byteLength(body) > 4_400_000) {
-        return json(res, 413, {
-          error: "A lista completa excede o limite de resposta. Consulte os canais por categoria.",
-        });
-      }
-      return res.status(200).send(body);
+      chunk += "]";
+      if (!res.write(chunk)) await new Promise((resolve) => res.once("drain", resolve));
+      return res.end();
     }
 
     if (action === "get_live_info" || action === "get_vod_info") return json(res, 200, {});

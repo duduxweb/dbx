@@ -20,7 +20,7 @@ A API tem rotas preparadas para implantação na Vercel:
 - `/get.php`: redireciona para a playlist completa ou para uma categoria usando `category_id`.
 - `/live/<username>/<password>/<stream_id>.ts`: redireciona para o endereço do canal.
 
-`get_live_streams` aceita `category_id` para consultar uma categoria ou, sem esse parâmetro, retorna todos os canais ao vivo com seus `direct_source` originais. A lista completa é transmitida em blocos JSON. Categorias cujo asset M3U não existe são ignoradas na resposta agregada. `get_vod_streams` continua exigindo `category_id`. A rota M3U redireciona para o arquivo hospedado no GitHub, sem passar os 337 MB pela função da Vercel. A compatibilidade depende de o aplicativo aceitar esse subconjunto Xtream e redirecionamentos HTTP.
+A geração ativa usa apenas `Canais.m3u8` (TV ao vivo) e `Filmes-Series.m3u8` (filmes e séries). As demais fontes antigas ficam arquivadas e fora do índice servido pela API. `get_live_streams` aceita `category_id` ou retorna todos os canais com `direct_source`; `get_vod_streams` lista filmes e séries por categoria. As listas Xtream são transmitidas em blocos JSON. Assets ausentes são ignorados na agregação. A rota M3U redireciona para o arquivo hospedado no GitHub, sem passar os 337 MB pela função da Vercel. A compatibilidade depende de o aplicativo aceitar esse subconjunto Xtream e redirecionamentos HTTP.
 
 ### Implantação
 
