@@ -1,27 +1,41 @@
 # DBX — Playlists M3U e API
 
-Este repositório reúne as playlists públicas de [Ramys/Iptv-Brasil-2026](https://github.com/Ramys/Iptv-Brasil-2026).
+Este repositório reúne playlists públicas geradas a partir de [Ramys/Iptv-Brasil-2026](https://github.com/Ramys/Iptv-Brasil-2026).
 
 ## M3U
 
-A playlist completa mantém o mesmo endereço público:
-
+Playlist completa:
 https://github.com/duduxweb/dbx/releases/download/playlist-latest/playlist.m3u
 
-O fluxo também gera um arquivo M3U para cada valor de `group-title` encontrado nas fontes. O índice lista nomes, IDs, tamanhos e nomes dos arquivos:
-
+Índice de categorias:
 https://github.com/duduxweb/dbx/releases/download/playlist-latest/categories-index.json
 
-Os arquivos individuais ficam na mesma Release com o nome `category-<slug>.m3u`. A lista completa continua sendo publicada junto deles.
+Cada categoria também é publicada como um M3U separado, com o nome `category-<slug>.m3u`, na Release `playlist-latest`. Os links diretos ficam no índice. A playlist completa permanece disponível no mesmo endereço.
 
 ## API compatível com Xtream
 
-O código do endpoint está em `api/worker.js`, preparado para Cloudflare Workers. Ele oferece uma parte da API Xtream, incluindo consulta de categorias e canais, além de uma rota M3U. A compatibilidade depende do aplicativo aceitar essa API; aplicativos que aceitam apenas URL M3U devem usar os links acima.
+A API tem rotas preparadas para implantação na Vercel:
 
-O GitHub publica arquivos estáticos, mas não executa os endpoints dinâmicos da API. Para obter um endereço de API, é necessário implantar o Worker em um serviço de execução, como Cloudflare Workers. O código está preparado, mas ainda não foi implantado nem testado em uma conta Cloudflare.
+- `/player_api.php`: autenticação, categorias e canais filtrados por categoria.
+- `/get.php`: redireciona para a playlist completa ou para uma categoria usando `category_id`.
+- `/live/<username>/<password>/<stream_id>.ts`: redireciona para o endereço do canal.
 
-Na implantação, configure `API_USERNAME` e `API_PASSWORD` como segredos do Worker. Não coloque esses valores no repositório. Configure também a autenticação de deploy do Cloudflare somente no ambiente de implantação.
+O endpoint de canais exige `category_id`; isso evita carregar as centenas de categorias e o M3U completo em uma única chamada. A rota M3U redireciona para o arquivo hospedado no GitHub, sem passar os 337 MB pela função da Vercel. A compatibilidade depende de o aplicativo aceitar o subconjunto Xtream acima e redirecionamentos HTTP.
+
+### Implantação
+
+1. Importe este repositório na Vercel.
+2. Em **Project Settings → Environment Variables**, configure `API_USERNAME` e `API_PASSWORD` como valores privados.
+3. Faça o deploy e use o domínio gerado pela Vercel como servidor.
+
+Exemplos, substituindo o domínio e as credenciais pelos seus:
+
+- Servidor Xtream: `https://SEU-PROJETO.vercel.app`
+- Player API: `https://SEU-PROJETO.vercel.app/player_api.php?username=USUARIO&password=SENHA`
+- M3U completa: `https://SEU-PROJETO.vercel.app/get.php?username=USUARIO&password=SENHA`
+
+Não grave credenciais no repositório. A API só ficará acessível depois que o projeto for importado, as variáveis forem configuradas e o deploy terminar.
 
 ## Atualização
 
-O GitHub Actions busca as fontes e publica a playlist completa, os arquivos por categoria e o índice diariamente às 08:17 UTC (05:17 em Recife), além de executar após alterações no repositório ou manualmente.
+O GitHub Actions busca as fontes e publica a playlist completa, os arquivos por categoria e o índice diariamente às 08:17 UTC (05:17 em Recife).
