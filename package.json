@@ -1,0 +1,7 @@
+{
+  "name": "dbx-iptv-api",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}
