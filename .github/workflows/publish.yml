@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - scripts/merge_playlists.py
   schedule:
     - cron: "17 8 * * *"
   workflow_dispatch:
@@ -26,18 +28,29 @@ jobs:
       - name: Build full and category playlists
         run: python3 scripts/merge_playlists.py
 
-      - name: Publish or replace stable release assets
+      - name: Publish only changed release assets
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           tag="playlist-latest"
-          assets=(public/playlist.m3u public/categories-index.json public/categories/*.m3u)
-          if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release upload "$tag" "${assets[@]}" --clobber --repo "$GH_REPO"
-          else
-            gh release create "$tag" "${assets[@]}" \
+          if ! gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release create "$tag" \
               --title "DBX playlists" \
               --notes "Generated full playlist, category playlists, and category index from Ramys/Iptv-Brasil-2026." \
               --repo "$GH_REPO"
           fi
+
+          release_json="$(gh api "repos/$GH_REPO/releases/tags/$tag")"
+          assets=(public/playlist.m3u public/categories-index.json public/categories/*.m3u)
+          for asset in "${assets[@]}"; do
+            name="${asset##*/}"
+            local_digest="$(sha256sum "$asset" | awk '{print $1}')"
+            remote_digest="$(jq -r --arg name "$name" '.assets[]? | select(.name == $name) | (.digest // "") | sub("^sha256:"; "")' <<< "$release_json" | head -n 1)"
+            if [[ "$local_digest" == "$remote_digest" ]]; then
+              echo "Unchanged: $name"
+            else
+              echo "Updating: $name"
+              gh release upload "$tag" "$asset" --clobber --repo "$GH_REPO"
+            fi
+          done
